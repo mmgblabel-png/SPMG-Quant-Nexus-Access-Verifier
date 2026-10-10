@@ -23,6 +23,13 @@ export async function handleRequest(
   if (!applyCors(request, response, dependencies.config.allowedOrigins)) {
     return sendJson(response, 403, { error: 'origin_not_allowed' });
   }
+
+  const url = new URL(request.url ?? '/', 'https://spmg-verifier.invalid');
+
+  if (request.method === 'GET' && url.pathname === '/health') {
+    return sendJson(response, 200, { status: 'ok', service: 'spmg-access-verifier' });
+  }
+
   if (request.method === 'OPTIONS') {
     response.writeHead(204);
     response.end();
@@ -32,7 +39,6 @@ export async function handleRequest(
     return sendJson(response, 429, { error: 'rate_limited' });
   }
 
-  const url = new URL(request.url ?? '/', 'https://spmg-verifier.invalid');
   try {
     if (request.method === 'POST' && url.pathname === '/api/spmg/wallet/challenge') {
       return await challenge(request, response, dependencies);
