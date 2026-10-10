@@ -22,6 +22,6 @@ const dependencies = {
 
 createServer((request, response) => {
   void handleRequest(request, response, dependencies);
-}).listen(config.port, () => {
-  console.log(`SPMG access verifier listening on port ${config.port}`);
+}).listen(config.port, '0.0.0.0', () => {
+  console.log(`SPMG access verifier listening on 0.0.0.0:${config.port}`);
 });
