@@ -6,6 +6,7 @@ import type { OwnershipResolver } from './ownership.js';
 import { applyCors, clientKey, FixedWindowRateLimiter, readJsonBody, sendJson } from './security.js';
 import { SessionStore } from './session.js';
 import { NonceStore, normalizeWallet, verifyWalletSignature } from './wallet.js';
+import { sendVerificationPage } from './verify-page.js';
 
 export interface RouteDependencies {
   config: VerifierConfig;
@@ -28,6 +29,10 @@ export async function handleRequest(
 
   if (request.method === 'GET' && url.pathname === '/health') {
     return sendJson(response, 200, { status: 'ok', service: 'spmg-access-verifier' });
+  }
+
+  if (request.method === 'GET' && url.pathname === '/verify') {
+    return sendVerificationPage(response);
   }
 
   if (request.method === 'OPTIONS') {
