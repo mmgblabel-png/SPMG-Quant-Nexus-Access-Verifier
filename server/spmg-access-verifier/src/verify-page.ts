@@ -1,7 +1,7 @@
 import type { ServerResponse } from 'node:http';
 
 export function sendVerificationPage(response: ServerResponse): void {
-  const html = String.raw\`<!doctype html>
+  const html = String.raw`<!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8" />
@@ -99,9 +99,9 @@ connect.addEventListener('click', async () => {
     });
 
     status.textContent =
-      'VERIFIED\\n' +
-      'Wallet: ' + access.wallet + '\\n' +
-      'Access tier: ' + access.tier + '\\n' +
+      'VERIFIED\n' +
+      'Wallet: ' + access.wallet + '\n' +
+      'Access tier: ' + access.tier + '\n' +
       'Session expires: ' + verified.expiresAt;
 
     tokenBox.textContent = sessionToken;
@@ -122,7 +122,7 @@ copy.addEventListener('click', async () => {
 });
 </script>
 </body>
-</html>\`;
+</html>`;
 
   response.writeHead(200, {
     'Content-Type': 'text/html; charset=utf-8',
