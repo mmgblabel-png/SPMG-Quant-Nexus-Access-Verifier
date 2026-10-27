@@ -16,6 +16,7 @@ import sqlite3
 import subprocess
 import sys
 import threading
+import time
 import uuid
 
 VERSION = '1.0.0'
@@ -30,6 +31,7 @@ TOKEN = secrets.token_urlsafe(32)
 JOB_LOCK = threading.Lock()
 ACTIVE = {'id': None, 'kind': None}
 BASE_REPO = 'https://github.com/mmgblabel-png/SPMG-Quant-Nexus-Access-Verifier/tree/main/command-center'
+SERVER = None
 
 
 def utc():
@@ -216,6 +218,39 @@ def ai_reply(prompt):
         return 'AI-chat niet beschikbaar: ' + type(exc).__name__ + '. De lokale bouwfuncties blijven werken.'
 
 
+def update_from_chat():
+    """User-requested updater; fetch only manifest-hashed files from own repo."""
+    if ACTIVE['id']:
+        return 'Er loopt nog een taak. Bijwerken is geblokkeerd totdat die is afgelopen.'
+    if os.name != 'nt':
+        return 'Automatisch bijwerken in de chat is bedoeld voor Windows.'
+    updater = ROOT / 'update.ps1'
+    if not updater.is_file():
+        return 'update.ps1 ontbreekt. Start eenmaal met START-SPMG.cmd.'
+    try:
+        result = subprocess.run(
+            ['powershell','-NoProfile','-ExecutionPolicy','Bypass','-File',str(updater),'-Apply'],
+            cwd=ROOT, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+            text=True, errors='replace', timeout=100, shell=False)
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        return 'Bijwerken niet gelukt: ' + str(exc)
+    if result.returncode:
+        return 'Bijwerken is veilig afgebroken: ' + result.stdout[-1200:]
+    def restart():
+        time.sleep(1.5)
+        if SERVER is None: return
+        SERVER.shutdown()
+        SERVER.server_close()
+        try:
+            subprocess.Popen([sys.executable,str(ROOT / 'app.py')], cwd=ROOT,
+                             creationflags=getattr(subprocess,'CREATE_NEW_PROCESS_GROUP',0),
+                             close_fds=True)
+        except OSError: return
+        os._exit(0)
+    threading.Thread(target=restart,daemon=True).start()
+    return 'Updatecontrole afgerond. Het Command Center herstart zichzelf. Herlaad de chat wanneer de verbinding terug is.'
+
+
 def respond(message):
     msg = message.strip()
     if not msg or len(msg) > 4000:
@@ -237,9 +272,7 @@ def respond(message):
     elif ('update' in lower or 'bijwerken' in lower or 'bijwerkt' in lower) and any(w in lower for w in ('agent','jezelf','software','command','systeem')):
         # Update is a narrowly scoped signed-hash check implemented in update.ps1.
         # Manual restart of this running server is still needed on Windows.
-        reply = ('Updates verlopen vanuit je eigen GitHub-bron. Stop Command Center met Ctrl+C, '
-                 'dubbelklik UPDATE-SPMG.cmd en start START-SPMG.cmd opnieuw. '
-                 'Je hoeft nooit meer een ZIP te downloaden.')
+        reply = update_from_chat()
     elif 'publiceer' in lower or 'publish' in lower:
         reply = 'Publicatie blijft uitsluitend jouw handeling. Ik kan wel een checklist en screenshots opleveren.'
     elif ('bouw' in lower or 'maak' in lower) and any(w in lower for w in ('plaza','nexus hub','hele game','volledige','wandelpad')):
@@ -332,7 +365,9 @@ class Handler(BaseHTTPRequestHandler):
 
 def main():
     with connect(): pass
+    global SERVER
     httpd=ThreadingHTTPServer(('127.0.0.1',PORT),Handler)
+    SERVER=httpd
     print(f'SPMG AI Command Center v{VERSION} — http://127.0.0.1:{PORT}')
     print('Alleen lokaal. Publicatie en walletacties uitgeschakeld.')
     try: httpd.serve_forever(poll_interval=.2)
