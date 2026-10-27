@@ -1,0 +1,33 @@
+{
+  "version": "1.0.0",
+  "files": [
+    {
+      "path": "app.py",
+      "sha256": "f8851389e135157fb48204b152cae362fa035f64025173c8f8fa6b920c2ac05b"
+    },
+    {
+      "path": "start.ps1",
+      "sha256": "f2c8e2e8a439427b0b0e8a1aad0a5ab325b012cce41a8a5fecf479355c6feaf7"
+    },
+    {
+      "path": "START-SPMG.cmd",
+      "sha256": "0ffcf0ef1b6b04ebe20d65b1994819fb5805569a77bb0dae71a8850b620d5d8a"
+    },
+    {
+      "path": "UPDATE-SPMG.cmd",
+      "sha256": "82d6ec68b9da41a827740ed9cf3d91e44d29b8ae7028a54542a162a5e06f83ff"
+    },
+    {
+      "path": "README.md",
+      "sha256": "7cd5c31c1abe416edb6321d64585e50cccf592dc65d668fe07aa57a7ad146016"
+    },
+    {
+      "path": "test_app.py",
+      "sha256": "ed5b7a418bce924a527a868c7374e82ef1c5920f6b507e8823ade6d135a8e31f"
+    },
+    {
+      "path": "update.ps1",
+      "sha256": "e4f97d95b9e7f84389e640eca9766bda6156a872054ea03e20e2017439ef9a12"
+    }
+  ]
+}
