@@ -5,6 +5,8 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 import app
+import path_builder
+from PIL import Image, ImageDraw
 
 class CenterTests(unittest.TestCase):
     def test_plan_stone_constraints(self):
@@ -143,6 +145,33 @@ class CenterTests(unittest.TestCase):
                     {'mode': 'replace_path_probe', 'expected_actors': 4}, 'build-current')
             self.assertIn('Geen ouder bouwplan', result)
             self.assertEqual((old / 'status.json').read_text(encoding='utf-8'), contents)
+
+    def test_path_green_target_and_new_stone_detection(self):
+        before = Image.new('RGB', (1600, 800), (64, 151, 47))
+        after = before.copy()
+        center = path_builder.choose_green_target(before)
+        draw = ImageDraw.Draw(after)
+        x, y = center
+        draw.rectangle((x - 7, y - 7, x + 7, y + 7), fill=(139, 139, 139))
+        self.assertGreater(path_builder.new_stone_pixels(before, after, center), 20)
+        self.assertTrue(path_builder.actor_sidebar_preserved(before, after))
+
+    def test_path_pilot_is_not_old_alt_action(self):
+        with patch.object(app, 'record'), patch.object(app, 'launch_path_pilot',
+                                                   return_value='Veilige normale padsteenproef'):
+            reply = app.respond('bouw toegangspad')
+        self.assertIn('padsteenproef', reply)
+        self.assertIn('oude Alt-steenproef is uitgezet', app.enqueue('stone'))
+
+    def test_path_rejects_duplicate_attempt_without_mouse_input(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            location = Path(tmp)
+            (location / 'path-pilot-attempt.json').write_text('{}', encoding='utf-8')
+            with patch.object(app, 'DATA', location), \
+                 patch.object(app, 'agent_process_running', return_value=False), \
+                 patch.object(app, 'bridge_is_running', return_value=False):
+                response = app.launch_path_pilot()
+            self.assertIn('al gestart', response)
 
     def test_tree_not_blind(self):
         with patch.object(app,'agent_process_running',return_value=False),patch.object(app,'bridge_is_running',return_value=False):
