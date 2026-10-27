@@ -1,13 +1,13 @@
 {
-  "version": "1.0.3",
+  "version": "1.0.4",
   "files": [
     {
       "path": "app.py",
-      "sha256": "ee4cc4798e2c50654d4ce32f1ff74066a0bd8c58f7071a00ab6e82144aae4a3f"
+      "sha256": "1a9b2cd282f48163642b1fe29da69c7a2d994327f460ec761846cd1f87d9798a"
     },
     {
       "path": "start.ps1",
-      "sha256": "55734dc95c66762ce5b83b984b8afcac00c0be1e255b15d1d2e726034783adf4"
+      "sha256": "9084ebec930e41decc4b83b7891a8e687169de63cf48c560e88f16342f30fad0"
     },
     {
       "path": "START-SPMG.cmd",
@@ -23,7 +23,7 @@
     },
     {
       "path": "test_app.py",
-      "sha256": "c4126d36c34b3892a7ef4219511f5ecb010149cf0d2a2be052b92422e4d212a8"
+      "sha256": "e6afc435217d159354033e5999b5e49e573eab83b97df02807ef5dca44e56329"
     },
     {
       "path": "update.ps1",
