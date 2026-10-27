@@ -251,13 +251,51 @@ def update_from_chat():
     return 'Updatecontrole afgerond. Het Command Center herstart zichzelf. Herlaad de chat wanneer de verbinding terug is.'
 
 
+def diagnose_latest():
+    """Read-only explanation from the real most recent agent run."""
+    run = last_run()
+    if not run:
+        return 'Er zijn nog geen bouwruns gevonden. Gebruik eerst Game Maker controleren.'
+    p = RUNS / run['run']
+    detail = str(run.get('detail') or '')
+    error = str(run.get('error') or '')
+    lines = [
+        'Laatste bouwrun: ' + run['run'],
+        'Status: ' + str(run.get('phase') or 'onbekend'),
+        'Reden: ' + (error or detail or 'Geen exacte foutmelding opgeslagen.'),
+    ]
+    if error and detail:
+        lines.append('Aanvullend: ' + detail)
+    proof = p / 'path-proof.json'
+    if proof.is_file():
+        try:
+            evidence = json.loads(proof.read_text(encoding='utf-8'))
+            lines.append('Terreinbewijs: ' + str(evidence.get('additional_neutral_stone_pixels', 'niet gemeten')) + ' extra steenpixels.')
+        except (OSError, ValueError):
+            lines.append('Terreinbewijs kon niet gelezen worden.')
+    else:
+        lines.append('Geen path-proof.json in deze run: blokplaatsing is niet onafhankelijk bevestigd.')
+    if run.get('phase') == 'blocked':
+        if 'herhaling' in (detail + error).casefold():
+            lines.append('De anti-herhalingsbeveiliging is geactiveerd. Dit is geen bewijs dat een blok is geplaatst.')
+        lines.append('Veilige volgende stap: laat de AI Build Backup open, controleer of er een nieuwe steen of Actor aanwezig is en verstuur nog geen tweede steenproef.')
+    elif run.get('phase') == 'needs_review':
+        lines.append('Veilige volgende stap: vergelijk de screenshots voor/na en sla niet op bij onzekerheid.')
+    else:
+        lines.append('Controleer de opgeslagen scène voordat je een volgende bouwtaak start.')
+    lines.append('De lokale AI-chat staat ' + ('aan.' if is_openai_ready() else 'uit; vaste controles werken zonder API-sleutel.'))
+    return '\n'.join(lines)
+
+
 def respond(message):
     msg = message.strip()
     if not msg or len(msg) > 4000:
         return 'Schrijf een opdracht van maximaal 4000 tekens.'
     lower = msg.casefold()
     record('user', msg)
-    if any(word in lower for word in ('status','hoe staat','overzicht','voortgang','laatste run')):
+    if any(word in lower for word in ('waarom', 'diagnose', 'geblokkeerd', 'bouwfout', 'bouwprobleem')):
+        reply = diagnose_latest()
+    elif any(word in lower for word in ('status','hoe staat','overzicht','voortgang','laatste run')):
         s = status()
         last = s['latest_run'] or {}
         reply = f"Agent: {'gevonden' if s['installed_agent'] else 'niet gevonden'}. Laatste bouwrun: {last.get('run','geen')}; status: {last.get('phase','onbekend')}. {last.get('detail','')} Actieve taak: {s['current_job']['id'] or 'geen'}."
@@ -300,7 +338,7 @@ form{display:flex;gap:10px;background:#0b1a2d;padding:15px 25px 23px}textarea{fl
 footer{color:#84a9bf;font-size:12px;padding:0 25px 15px;background:#0b1a2d}#details{display:none;margin:12px 25px;background:#0d2134;border:1px solid #234259;border-radius:12px;padding:12px 18px;max-height:270px;overflow:auto;white-space:pre-wrap;font:12px Consolas,monospace}
 @media(max-width:700px){nav{width:70px;padding:12px}.brand{font-size:12px}.brand small{display:none}nav button{font-size:0}nav button:before{content:'●';font-size:15px}.top{padding:14px}#messages{padding:15px}form{padding:12px}}
 </style></head><body><nav><div class="brand">◆ SPMG AI<br>COMMAND CENTER<small>Lokale Game Maker-agent</small></div>
-<button onclick="ask('status')">◉ Agentstatus</button><button onclick="ask('controleer Game Maker')">▣ Game Maker controleren</button><button onclick="ask('kalibreer het stenen pad')">◈ Padkalibratie</button><button onclick="ask('test eerste steen')">▦ Steenproef</button><button onclick="showStatus()">☷ Logs en resultaten</button><div style="flex:1"></div><small style="color:#7fa0b8">Alleen AI Build Backup. Geen aankopen, wallets of publicatie.</small></nav>
+<button onclick="ask('status')">◉ Agentstatus</button><button onclick="ask('controleer Game Maker')">▣ Game Maker controleren</button><button onclick="ask('kalibreer het stenen pad')">◈ Padkalibratie</button><button onclick="ask('test eerste steen')">▦ Steenproef</button><button onclick="ask('waarom is bouwen geblokkeerd?')">! Diagnose blokkade</button><button onclick="showStatus()">☷ Logs en resultaten</button><div style="flex:1"></div><small style="color:#7fa0b8">Alleen AI Build Backup. Geen aankopen, wallets of publicatie.</small></nav>
 <main><div class="top"><h1>SPMG AI Developer <span style="font-size:12px;color:#80a0b6">v1.0</span></h1><span class="pill" id="state">● Lokaal</span></div>
 <section id="details"></section><section id="messages"></section><form id="frm"><textarea id="input" placeholder="Bijv. 'Controleer Game Maker', 'Wat is de status?', 'Ontwerp de Welcome Plaza'..."></textarea><button class="submit" type="submit">Verstuur</button></form><footer>Jij geeft de opdracht · de lokale agent voert alleen ondersteunde acties uit · jij publiceert zelf</footer></main>
 <script>
