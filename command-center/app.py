@@ -20,7 +20,7 @@ import threading
 import time
 import uuid
 
-VERSION = '1.0.6'
+VERSION = '1.0.7'
 ROOT = Path(__file__).resolve().parent
 DATA = ROOT / 'data'
 DATA.mkdir(parents=True, exist_ok=True)
@@ -150,6 +150,8 @@ def worker(jid, kind, task):
 
 
 def enqueue(kind):
+    if kind == 'stone':
+        return 'De oude Alt-steenproef is uitgezet. Gebruik “bouw toegangspad” voor de nieuwe normale linkermuisklik.'
     with JOB_LOCK:
         if agent_process_running():
             return 'Er loopt al een taak. Ik start geen tweede bouwproces.'
@@ -168,6 +170,54 @@ def enqueue(kind):
     return ('Opdracht ' + jid + ' gestart in de AI Build Backup. ' +
             ('Er wordt NIET automatisch opgeslagen.' if kind in ('stone','calibrate') else 'Opslag volgt alleen na bewijs.') +
             ' Bekijk het resultaat bij Status.')
+
+
+def launch_path_pilot():
+    """First step toward automatic path building: one plain-click stone proof.
+
+    This does NOT resume the old Alt-replacement probe and never self-repeats.
+    """
+    with JOB_LOCK:
+        if agent_process_running():
+            return 'Er loopt al een taak. Geen tweede bouwproces gestart.'
+        if bridge_is_running():
+            return 'De oude Agent Bridge draait nog. Stop die eerst met Ctrl+C.'
+        attempt = DATA / 'path-pilot-attempt.json'
+        if attempt.exists():
+            return ('De nieuwe padsteenproef is al gestart. Controleer de screenshots '
+                    'in de data/path-pilot-map; automatisch herhalen is geblokkeerd.')
+        jid = 'pathpilot-' + uuid.uuid4().hex[:12]
+        with connect() as db:
+            db.execute('INSERT INTO jobs (id,at,kind,phase,task) VALUES (?,?,?,?,?)',
+                       (jid, utc(), 'path_pilot', 'queued',
+                        'AI Build Backup: één normale linkermuisklik op gecontroleerd gras; niet opslaan'))
+        ACTIVE['id'], ACTIVE['kind'] = jid, 'path_pilot'
+
+    def do():
+        phase, output = 'blocked', 'Geen uitvoering.'
+        try:
+            with connect() as db:
+                db.execute('UPDATE jobs SET phase=? WHERE id=?', ('running', jid))
+            cp = subprocess.run(['py', '-3', str(ROOT / 'path_builder.py'), '--pilot'],
+                                cwd=ROOT, text=True, errors='replace',
+                                stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                                shell=False, timeout=120)
+            phase = 'needs_review' if cp.returncode == 0 else 'blocked'
+            output = cp.stdout[-8000:]
+        except (OSError, subprocess.TimeoutExpired) as exc:
+            output = str(exc) + '; controleer Game Maker voordat je opnieuw bouwt.'
+        finally:
+            with connect() as db:
+                db.execute('UPDATE jobs SET phase=?,output=? WHERE id=?',
+                           (phase, output, jid))
+            with JOB_LOCK:
+                ACTIVE['id'] = ACTIVE['kind'] = None
+
+    threading.Thread(target=do, daemon=True).start()
+    return ('De nieuwe padsteenproef is gestart: één gewone linkermuisklik '
+            'zonder Alt, Ctrl of automatische opslag. Het is nog geen volledig pad. '
+            'Controleer het resultaat via Logs en resultaten en de screenshots '
+            'in data/path-pilot voordat we de hele strook laten bouwen.')
 
 
 def launch_probe():
@@ -437,8 +487,8 @@ def respond(message):
         reply = launch_probe()
     elif ('kalibreer' in lower or 'kalibratie' in lower) and ('pad' in lower or 'steen' in lower or 'stone' in lower):
         reply = enqueue('calibrate')
-    elif any(w in lower for w in ('steenproef','vloertest','test steen','eerste steen','test het pad','vervang één grasblok')):
-        reply = enqueue('stone')
+    elif any(w in lower for w in ('bouw toegangspad','bouw het pad','bouw wandelpad','bouw eerste padsteen','test eerste steen','steenproef','vloertest','test steen','eerste steen','test het pad')):
+        reply = launch_path_pilot()
     elif ('boom' in lower or 'bomen' in lower) and any(w in lower for w in ('plaats','bouw','plant')):
         reply = enqueue('tree')
     elif ('update' in lower or 'bijwerken' in lower or 'bijwerkt' in lower) and any(w in lower for w in ('agent','jezelf','software','command','systeem')):
@@ -472,8 +522,8 @@ form{display:flex;gap:10px;background:#0b1a2d;padding:15px 25px 23px}textarea{fl
 footer{color:#84a9bf;font-size:12px;padding:0 25px 15px;background:#0b1a2d}#details{display:none;margin:12px 25px;background:#0d2134;border:1px solid #234259;border-radius:12px;padding:12px 18px;max-height:270px;overflow:auto;white-space:pre-wrap;font:12px Consolas,monospace}
 @media(max-width:700px){nav{width:70px;padding:12px}.brand{font-size:12px}.brand small{display:none}nav button{font-size:0}nav button:before{content:'●';font-size:15px}.top{padding:14px}#messages{padding:15px}form{padding:12px}}
 </style></head><body><nav><div class="brand">◆ SPMG AI<br>COMMAND CENTER<small>Lokale Game Maker-agent</small></div>
-<button onclick="ask('status')">◉ Agentstatus</button><button onclick="ask('controleer Game Maker')">▣ Game Maker controleren</button><button onclick="ask('kalibreer het stenen pad')">◈ Padkalibratie</button><button onclick="ask('test eerste steen')">▦ Steenproef</button><button onclick="ask('waarom is bouwen geblokkeerd?')">! Diagnose blokkade</button><button onclick="showStatus()">☷ Logs en resultaten</button><div style="flex:1"></div><small style="color:#7fa0b8">Alleen AI Build Backup. Geen aankopen, wallets of publicatie.</small></nav>
-<main><div class="top"><h1>SPMG AI Developer <span style="font-size:12px;color:#80a0b6">v1.0.6</span></h1><span class="pill" id="state">● Lokaal</span></div>
+<button onclick="ask('status')">◉ Agentstatus</button><button onclick="ask('controleer Game Maker')">▣ Game Maker controleren</button><button onclick="ask('kalibreer het stenen pad')">◈ Padkalibratie</button><button onclick="ask('bouw toegangspad')">▦ Bouw padsteen (proef)</button><button onclick="ask('waarom is bouwen geblokkeerd?')">! Diagnose blokkade</button><button onclick="showStatus()">☷ Logs en resultaten</button><div style="flex:1"></div><small style="color:#7fa0b8">Alleen AI Build Backup. Geen aankopen, wallets of publicatie.</small></nav>
+<main><div class="top"><h1>SPMG AI Developer <span style="font-size:12px;color:#80a0b6">v1.0.7</span></h1><span class="pill" id="state">● Lokaal</span></div>
 <section id="details"></section><section id="messages"></section><form id="frm"><textarea id="input" placeholder="Bijv. 'Controleer Game Maker', 'Wat is de status?', 'Ontwerp de Welcome Plaza'..."></textarea><button class="submit" type="submit">Verstuur</button></form><footer>Jij geeft de opdracht · de lokale agent voert alleen ondersteunde acties uit · jij publiceert zelf</footer></main>
 <script>
 const KEY = '__TOKEN__';
