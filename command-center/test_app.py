@@ -106,6 +106,44 @@ class CenterTests(unittest.TestCase):
             self.assertIn('Geen AutoBuilder-receipts gevonden', report)
             self.assertFalse((agent / 'autobuild-receipts').exists())
 
+    def test_fallback_finds_previous_plan_but_not_proof_of_success(self):
+        with tempfile.TemporaryDirectory() as temp:
+            runs = Path(temp)
+            old = runs / 'build-20261026-120000'
+            current = runs / 'build-20261027-120000'
+            old.mkdir()
+            current.mkdir()
+            plan = {'job_id': 'new', 'mode': 'replace_path_probe', 'expected_actors': 4,
+                    'slot': 3, 'x': 992, 'y': 461, 'save': False}
+            prev = dict(plan, job_id='old')
+            (old / 'status.json').write_text(json.dumps({
+                'phase': 'needs_review',
+                'detail': 'Een klik uitgevoerd, niet opgeslagen',
+                'task': 'SPMG_AI_BACKUP_MODE\nSPMG_AUTOBUILD_V2\n' + json.dumps(prev)
+            }), encoding='utf-8')
+            (old / 'path-proof.json').write_text(json.dumps({
+                'additional_neutral_stone_pixels': 0
+            }), encoding='utf-8')
+            with patch.object(app, 'RUNS', runs):
+                result = app.historic_build_candidates(plan, current.name)
+            self.assertIn(old.name, result)
+            self.assertIn('0', result)
+            self.assertIn('niet als succes bevestigd', result)
+            self.assertNotIn(current.name, result)
+
+    def test_fallback_never_modifies_audit_logs(self):
+        with tempfile.TemporaryDirectory() as temp:
+            runs = Path(temp)
+            old = runs / 'build-20261026-120000'
+            old.mkdir()
+            contents = json.dumps({'phase': 'blocked', 'task': 'other'})
+            (old / 'status.json').write_text(contents, encoding='utf-8')
+            with patch.object(app, 'RUNS', runs):
+                result = app.historic_build_candidates(
+                    {'mode': 'replace_path_probe', 'expected_actors': 4}, 'build-current')
+            self.assertIn('Geen ouder bouwplan', result)
+            self.assertEqual((old / 'status.json').read_text(encoding='utf-8'), contents)
+
     def test_tree_not_blind(self):
         with patch.object(app,'agent_process_running',return_value=False),patch.object(app,'bridge_is_running',return_value=False):
             self.assertIn('Actors-telling',app.enqueue('tree'))
