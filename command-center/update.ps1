@@ -3,7 +3,7 @@ $ErrorActionPreference = 'Stop'
 $here = Split-Path -Parent $MyInvocation.MyCommand.Path
 $base = 'https://raw.githubusercontent.com/mmgblabel-png/SPMG-Quant-Nexus-Access-Verifier/main/command-center'
 $tempDir = Join-Path $env:TEMP ('spmg-update-' + [guid]::NewGuid().ToString('N'))
-New-Item -ItemType Directory -LiteralPath $tempDir -Force | Out-Null
+New-Item -ItemType Directory -Path $tempDir -Force | Out-Null
 try {
     $manifestFile = Join-Path $tempDir 'manifest.json'
     Invoke-WebRequest -Uri "$base/manifest.json" -OutFile $manifestFile -UseBasicParsing -TimeoutSec 30
