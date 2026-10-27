@@ -54,6 +54,58 @@ class CenterTests(unittest.TestCase):
             self.assertIn('START-SPMG.cmd', result)
             thread.assert_not_called()
 
+    def test_original_receipt_traces_duplicate_without_rebuilding(self):
+        with tempfile.TemporaryDirectory() as temp:
+            agent = Path(temp)
+            runs = agent / 'runs'
+            original = runs / 'build-original'
+            blocked = runs / 'build-blocked'
+            receipts = agent / 'autobuild-receipts'
+            original.mkdir(parents=True)
+            blocked.mkdir()
+            receipts.mkdir()
+            plan = {'job_id': 'new-id', 'mode': 'replace_path_probe',
+                    'expected_actors': 4, 'slot': 3, 'x': 992, 'y': 461,
+                    'save': False}
+            task = 'SPMG_AI_BACKUP_MODE\nSPMG_AUTOBUILD_V2\n' + json.dumps(plan)
+            (blocked / 'status.json').write_text(json.dumps({
+                'phase': 'blocked', 'task': task}), encoding='utf-8')
+            cleaned = {k: v for k, v in plan.items() if k != 'job_id'}
+            cleaned['probe_protocol'] = 'replace_existing_ground_left_alt_click_v091'
+            digest = app.hashlib.sha256(json.dumps(
+                cleaned, sort_keys=True, separators=(',', ':')).encode()).hexdigest()
+            (receipts / 'old-id.json').write_text(json.dumps({
+                'job_id': 'old-id', 'digest': digest,
+                'run': str(original), 'state': 'interrupted_or_blocked'
+            }), encoding='utf-8')
+            (original / 'status.json').write_text(json.dumps({
+                'phase': 'needs_review', 'detail': 'Geen steen bewezen'}), encoding='utf-8')
+            (original / 'path-proof.json').write_text(json.dumps({
+                'terrain_clicks': 1,
+                'additional_neutral_stone_pixels': 0}), encoding='utf-8')
+            with patch.object(app, 'AGENT', agent), patch.object(app, 'RUNS', runs):
+                report = app.original_build_evidence({'run': 'build-blocked'})
+            self.assertIn('build-original', report)
+            self.assertIn('0', report)
+            self.assertIn('Path-proof aanwezig: ja', report)
+            self.assertIn('Herhaling blijft geblokkeerd', report)
+
+    def test_original_receipt_no_missing_registry_mutation(self):
+        with tempfile.TemporaryDirectory() as temp:
+            agent = Path(temp)
+            runs = agent / 'runs'
+            blocked = runs / 'build-blocked'
+            blocked.mkdir(parents=True)
+            (blocked / 'status.json').write_text(json.dumps({
+                'task': 'SPMG_AI_BACKUP_MODE\nSPMG_AUTOBUILD_V2\n' +
+                        json.dumps({'job_id': 'new-id', 'mode': 'replace_path_probe',
+                                    'expected_actors': 4, 'slot': 3,
+                                    'x': 992, 'y': 461, 'save': False})}), encoding='utf-8')
+            with patch.object(app, 'AGENT', agent), patch.object(app, 'RUNS', runs):
+                report = app.original_build_evidence({'run': 'build-blocked'})
+            self.assertIn('Geen AutoBuilder-receipts gevonden', report)
+            self.assertFalse((agent / 'autobuild-receipts').exists())
+
     def test_tree_not_blind(self):
         with patch.object(app,'agent_process_running',return_value=False),patch.object(app,'bridge_is_running',return_value=False):
             self.assertIn('Actors-telling',app.enqueue('tree'))
