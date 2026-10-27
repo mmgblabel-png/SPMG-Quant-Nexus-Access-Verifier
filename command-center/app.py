@@ -8,6 +8,7 @@ from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import urlparse
+import hashlib
 import json
 import os
 import re
@@ -19,7 +20,7 @@ import threading
 import time
 import uuid
 
-VERSION = '1.0.4'
+VERSION = '1.0.5'
 ROOT = Path(__file__).resolve().parent
 DATA = ROOT / 'data'
 DATA.mkdir(parents=True, exist_ok=True)
@@ -251,6 +252,85 @@ def update_from_chat():
             'Vernieuw daarna deze pagina met Ctrl+F5 om de nieuwe verbinding te gebruiken.')
 
 
+def original_build_evidence(run):
+    """Trace a rejected duplicate to its original immutable build receipt.
+
+    Read-only. Never clear receipts, reuse a blocked ID or trigger Game Maker.
+    The digest intentionally matches AutoBuilder v0.9.1 plan_digest().
+    """
+    if not run or not RUNS.is_dir():
+        return 'Oorspronkelijke bouwpoging: onbekend.'
+    status_file = RUNS / str(run.get('run', '')) / 'status.json'
+    if not status_file.is_file():
+        return 'Oorspronkelijke bouwpoging: statusbestand ontbreekt.'
+    try:
+        status_data = json.loads(status_file.read_text(encoding='utf-8'))
+        task = status_data.get('task', '')
+        if 'SPMG_AUTOBUILD_V2' not in task:
+            return 'Geen AutoBuilder V2-taak gevonden in dit log.'
+        plan = json.loads(task.split('SPMG_AUTOBUILD_V2', 1)[1].strip())
+        if not isinstance(plan, dict):
+            return 'Bouwplan heeft een onverwacht formaat.'
+        cleaned = {key: value for key, value in plan.items() if key != 'job_id'}
+        mode = plan.get('mode')
+        if mode == 'place_path_probe':
+            cleaned['probe_protocol'] = 'verified_hover_v081'
+        elif mode == 'replace_path_probe':
+            cleaned['probe_protocol'] = 'replace_existing_ground_left_alt_click_v091'
+        digest = hashlib.sha256(json.dumps(
+            cleaned, sort_keys=True, separators=(',', ':')).encode('utf-8')).hexdigest()
+    except (OSError, ValueError, TypeError, AttributeError):
+        return 'Kan de oorspronkelijke bouwopdracht niet veilig herkennen.'
+
+    registry = AGENT / 'autobuild-receipts'
+    if not registry.is_dir():
+        return 'Geen AutoBuilder-receipts gevonden. Verwijder geen beveiligingsbestanden.'
+    try:
+        entries = sorted(registry.glob('*.json'))[:1000]
+    except OSError:
+        return 'AutoBuilder-receipts kunnen niet gelezen worden.'
+    for receipt_file in entries:
+        try:
+            if receipt_file.stat().st_size > 20000:
+                continue
+            receipt = json.loads(receipt_file.read_text(encoding='utf-8'))
+            if not isinstance(receipt, dict):
+                continue
+            if receipt.get('job_id') != plan.get('job_id') and receipt.get('digest') != digest:
+                continue
+            candidate = Path(str(receipt.get('run') or '')).name
+            # Only open audit artifacts under the established agent RUNS directory.
+            if not candidate.startswith('build-') or candidate == run.get('run'):
+                continue
+            previous = RUNS / candidate
+            report = ['OORSPRONKELIJKE BOUWPOGING:', 
+                      'Run: ' + candidate,
+                      'Receipt-status: ' + str(receipt.get('state', 'onbekend')),
+                      'Job-ID: ' + str(receipt.get('job_id', 'onbekend'))]
+            status_old = previous / 'status.json'
+            if status_old.is_file():
+                old = json.loads(status_old.read_text(encoding='utf-8'))
+                report.append('Runstatus: ' + str(old.get('phase', 'onbekend')))
+                if old.get('detail'):
+                    report.append('Resultaat: ' + str(old['detail'])[:400])
+                if old.get('error'):
+                    report.append('Fout: ' + str(old['error'])[:300])
+            proof = previous / 'path-proof.json'
+            if proof.is_file():
+                data = json.loads(proof.read_text(encoding='utf-8'))
+                report.append('Path-proof aanwezig: ja.')
+                report.append('Bouwklikken: ' + str(data.get('terrain_clicks', data.get('terrain_replacement_clicks', 'niet bekend'))))
+                report.append('Bewezen nieuwe steenpixels: ' + str(data.get('additional_neutral_stone_pixels', 'niet bekend')))
+            else:
+                report.append('Path-proof aanwezig: nee; daadwerkelijke steenplaatsing niet aangetoond.')
+            report.append('Herhaling blijft geblokkeerd. Controleer eerst het originele bewijs; er wordt niets aangepast.')
+            return '\n'.join(report)
+        except (OSError, ValueError, TypeError, AttributeError):
+            continue
+    return ('Geen corresponderende eerdere receipt gevonden. De laatste run blijft '
+            'geblokkeerd; wijzig of verwijder geen ontvangstbewijzen.')
+
+
 def diagnose_latest():
     """Read-only explanation from the real most recent agent run."""
     run = last_run()
@@ -278,6 +358,7 @@ def diagnose_latest():
     if run.get('phase') == 'blocked':
         if 'herhaling' in (detail + error).casefold():
             lines.append('De anti-herhalingsbeveiliging is geactiveerd. Dit is geen bewijs dat een blok is geplaatst.')
+            lines.append(original_build_evidence(run))
         lines.append('Veilige volgende stap: laat de AI Build Backup open, controleer of er een nieuwe steen of Actor aanwezig is en verstuur nog geen tweede steenproef.')
     elif run.get('phase') == 'needs_review':
         lines.append('Veilige volgende stap: vergelijk de screenshots voor/na en sla niet op bij onzekerheid.')
@@ -339,7 +420,7 @@ footer{color:#84a9bf;font-size:12px;padding:0 25px 15px;background:#0b1a2d}#deta
 @media(max-width:700px){nav{width:70px;padding:12px}.brand{font-size:12px}.brand small{display:none}nav button{font-size:0}nav button:before{content:'●';font-size:15px}.top{padding:14px}#messages{padding:15px}form{padding:12px}}
 </style></head><body><nav><div class="brand">◆ SPMG AI<br>COMMAND CENTER<small>Lokale Game Maker-agent</small></div>
 <button onclick="ask('status')">◉ Agentstatus</button><button onclick="ask('controleer Game Maker')">▣ Game Maker controleren</button><button onclick="ask('kalibreer het stenen pad')">◈ Padkalibratie</button><button onclick="ask('test eerste steen')">▦ Steenproef</button><button onclick="ask('waarom is bouwen geblokkeerd?')">! Diagnose blokkade</button><button onclick="showStatus()">☷ Logs en resultaten</button><div style="flex:1"></div><small style="color:#7fa0b8">Alleen AI Build Backup. Geen aankopen, wallets of publicatie.</small></nav>
-<main><div class="top"><h1>SPMG AI Developer <span style="font-size:12px;color:#80a0b6">v1.0.4</span></h1><span class="pill" id="state">● Lokaal</span></div>
+<main><div class="top"><h1>SPMG AI Developer <span style="font-size:12px;color:#80a0b6">v1.0.5</span></h1><span class="pill" id="state">● Lokaal</span></div>
 <section id="details"></section><section id="messages"></section><form id="frm"><textarea id="input" placeholder="Bijv. 'Controleer Game Maker', 'Wat is de status?', 'Ontwerp de Welcome Plaza'..."></textarea><button class="submit" type="submit">Verstuur</button></form><footer>Jij geeft de opdracht · de lokale agent voert alleen ondersteunde acties uit · jij publiceert zelf</footer></main>
 <script>
 const KEY = '__TOKEN__';
