@@ -20,7 +20,7 @@ import threading
 import time
 import uuid
 
-VERSION = '1.0.5'
+VERSION = '1.0.6'
 ROOT = Path(__file__).resolve().parent
 DATA = ROOT / 'data'
 DATA.mkdir(parents=True, exist_ok=True)
@@ -252,6 +252,58 @@ def update_from_chat():
             'Vernieuw daarna deze pagina met Ctrl+F5 om de nieuwe verbinding te gebruiken.')
 
 
+def historic_build_candidates(plan, current_run):
+    """Find possible earlier attempts in audit logs if receipt format has changed.
+
+    This is read-only and never equates a matching plan to completed building.
+    """
+    if not RUNS.is_dir() or not isinstance(plan, dict):
+        return 'Geen historische bouwruns beschikbaar.'
+    names = ('mode', 'expected_actors', 'slot', 'x', 'y', 'save')
+    candidates = []
+    try:
+        folders = sorted((p for p in RUNS.iterdir()
+                          if p.is_dir() and p.name.startswith('build-')
+                          and p.name != current_run), key=lambda p: p.name,
+                         reverse=True)[:300]
+        for folder in folders:
+            sf = folder / 'status.json'
+            if not sf.is_file() or sf.stat().st_size > 100000:
+                continue
+            raw = json.loads(sf.read_text(encoding='utf-8'))
+            task = raw.get('task', '')
+            if not isinstance(task, str) or 'SPMG_AUTOBUILD_V2' not in task:
+                continue
+            old_plan = json.loads(task.split('SPMG_AUTOBUILD_V2', 1)[1].strip())
+            if not isinstance(old_plan, dict):
+                continue
+            if any(old_plan.get(k) != plan.get(k) for k in names):
+                continue
+            lines = ['- ' + folder.name + ' | status: ' + str(raw.get('phase', '?'))]
+            if raw.get('detail'):
+                lines.append('  Detail: ' + str(raw['detail'])[:220])
+            pf = folder / 'path-proof.json'
+            if pf.is_file() and pf.stat().st_size < 100000:
+                evidence = json.loads(pf.read_text(encoding='utf-8'))
+                lines.append('  path-proof: aanwezig; extra steenpixels: ' +
+                             str(evidence.get('additional_neutral_stone_pixels',
+                                              'niet bewezen')))
+            else:
+                lines.append('  path-proof: ontbreekt; geen onafhankelijk bewijs van plaatsing')
+            candidates.append('\n'.join(lines))
+            if len(candidates) >= 3:
+                break
+    except (OSError, ValueError, TypeError, AttributeError):
+        return 'Oudere bouwlogs konden niet volledig worden doorzocht.'
+    if not candidates:
+        return ('Geen ouder bouwplan met dezelfde parameters gevonden in 300 '
+                'onderzochte recente runmappen. Geen automatische herhaling.')
+    return ('MOGELIJKE EERDERE BOUWPOGINGEN (niet als succes bevestigd):\n' +
+            '\n'.join(candidates) +
+            '\nDe anti-herhalingsbeveiliging blijft actief; controleer de screenshots '
+            'van de genoemde run voordat je het terrein opnieuw wijzigt.')
+
+
 def original_build_evidence(run):
     """Trace a rejected duplicate to its original immutable build receipt.
 
@@ -284,7 +336,8 @@ def original_build_evidence(run):
 
     registry = AGENT / 'autobuild-receipts'
     if not registry.is_dir():
-        return 'Geen AutoBuilder-receipts gevonden. Verwijder geen beveiligingsbestanden.'
+        return ('Geen AutoBuilder-receipts-map gevonden; alleen-lezen logs doorzocht.\n' +
+                historic_build_candidates(plan, run.get('run')))
     try:
         entries = sorted(registry.glob('*.json'))[:1000]
     except OSError:
@@ -327,8 +380,8 @@ def original_build_evidence(run):
             return '\n'.join(report)
         except (OSError, ValueError, TypeError, AttributeError):
             continue
-    return ('Geen corresponderende eerdere receipt gevonden. De laatste run blijft '
-            'geblokkeerd; wijzig of verwijder geen ontvangstbewijzen.')
+    return ('Geen corresponderende receipt gevonden; controleer alternatieve bouwlogs.\n' +
+            historic_build_candidates(plan, run.get('run')))
 
 
 def diagnose_latest():
@@ -420,7 +473,7 @@ footer{color:#84a9bf;font-size:12px;padding:0 25px 15px;background:#0b1a2d}#deta
 @media(max-width:700px){nav{width:70px;padding:12px}.brand{font-size:12px}.brand small{display:none}nav button{font-size:0}nav button:before{content:'●';font-size:15px}.top{padding:14px}#messages{padding:15px}form{padding:12px}}
 </style></head><body><nav><div class="brand">◆ SPMG AI<br>COMMAND CENTER<small>Lokale Game Maker-agent</small></div>
 <button onclick="ask('status')">◉ Agentstatus</button><button onclick="ask('controleer Game Maker')">▣ Game Maker controleren</button><button onclick="ask('kalibreer het stenen pad')">◈ Padkalibratie</button><button onclick="ask('test eerste steen')">▦ Steenproef</button><button onclick="ask('waarom is bouwen geblokkeerd?')">! Diagnose blokkade</button><button onclick="showStatus()">☷ Logs en resultaten</button><div style="flex:1"></div><small style="color:#7fa0b8">Alleen AI Build Backup. Geen aankopen, wallets of publicatie.</small></nav>
-<main><div class="top"><h1>SPMG AI Developer <span style="font-size:12px;color:#80a0b6">v1.0.5</span></h1><span class="pill" id="state">● Lokaal</span></div>
+<main><div class="top"><h1>SPMG AI Developer <span style="font-size:12px;color:#80a0b6">v1.0.6</span></h1><span class="pill" id="state">● Lokaal</span></div>
 <section id="details"></section><section id="messages"></section><form id="frm"><textarea id="input" placeholder="Bijv. 'Controleer Game Maker', 'Wat is de status?', 'Ontwerp de Welcome Plaza'..."></textarea><button class="submit" type="submit">Verstuur</button></form><footer>Jij geeft de opdracht · de lokale agent voert alleen ondersteunde acties uit · jij publiceert zelf</footer></main>
 <script>
 const KEY = '__TOKEN__';
