@@ -3,35 +3,35 @@
   "files": [
     {
       "path": "app.py",
-      "sha256": "d3c5dfb24be36e30771afc9b3ffd22105de073c492c7a592321025a2d2e7e809"
+      "sha256": "506ecbe04dc0c20f2a3baad480348686d0a98248bbd97bf9cdae7df7fc628d57"
     },
     {
       "path": "start.ps1",
-      "sha256": "9084ebec930e41decc4b83b7891a8e687169de63cf48c560e88f16342f30fad0"
+      "sha256": "1d12b1eb63e641be732bc7ba1435dad3916140028ab9cf0d6466377d29ade031"
     },
     {
       "path": "START-SPMG.cmd",
-      "sha256": "9ba928b1e989818999fe6ce706db9a2613f8db983b9c902c91aa701275fe5d91"
+      "sha256": "46306e5e1b079a87b74d672d6b5cb0b9e7fe195394e79cab812cc13908a71c41"
     },
     {
       "path": "UPDATE-SPMG.cmd",
-      "sha256": "4675e8a39d6dd6f88a8147f4fcfdddd4461b299a604b6e9f4565eb09ee2f969d"
+      "sha256": "ac2372124a2447edaa227d6f8d7a49e104d92d88a84421eea1bbe32be613deff"
     },
     {
       "path": "README.md",
-      "sha256": "5fcf52d5971ae6e838f13414b0b2bc9b45db0256a332fbaefbb7039c9faa5645"
+      "sha256": "bcb6fbb73f4125da68fda8266f52ce95345aa945567ac3f83e3dd5d9760c9d30"
     },
     {
       "path": "test_app.py",
-      "sha256": "49ebcf069a43e5cfd14ee6cbaa392221fa9e812a7d463129cb30c0b521a8f77e"
+      "sha256": "b3a36c68a480c2066ea6b2a8872621c5301b2e535e4dc94dd2f2f86daad954ca"
     },
     {
       "path": "update.ps1",
-      "sha256": "1fc2eda416a8a9c0986b6c15547aa5e1a90cacf77840f0dd6506996b89db93a5"
+      "sha256": "43b08e360b308b6f45621531a1d8800ea43cd9996934c5483a3dd3a455eb5530"
     },
     {
       "path": "path_builder.py",
-      "sha256": "ae725b025e873504dcd6a2b64205035a7151efa0615ec06ceafb54b6a1dd78b8"
+      "sha256": "9908167ce8247f60f3022b13912ebb272405f558a6cca703c91263595becf076"
     }
   ]
 }
