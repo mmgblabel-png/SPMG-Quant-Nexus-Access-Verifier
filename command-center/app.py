@@ -19,7 +19,7 @@ import threading
 import time
 import uuid
 
-VERSION = '1.0.3'
+VERSION = '1.0.4'
 ROOT = Path(__file__).resolve().parent
 DATA = ROOT / 'data'
 DATA.mkdir(parents=True, exist_ok=True)
@@ -236,19 +236,19 @@ def update_from_chat():
         return 'Bijwerken niet gelukt: ' + str(exc)
     if result.returncode:
         return 'Bijwerken is veilig afgebroken: ' + result.stdout[-1200:]
-    def restart():
-        time.sleep(1.5)
-        if SERVER is None: return
-        SERVER.shutdown()
-        SERVER.server_close()
-        try:
-            subprocess.Popen([sys.executable,str(ROOT / 'app.py')], cwd=ROOT,
-                             creationflags=getattr(subprocess,'CREATE_NEW_PROCESS_GROUP',0),
-                             close_fds=True)
-        except OSError: return
-        os._exit(0)
-    threading.Thread(target=restart,daemon=True).start()
-    return 'Updatecontrole afgerond. Het Command Center herstart zichzelf. Herlaad de chat wanneer de verbinding terug is.'
+    # The PowerShell launcher supervises the Python process. Exit with a
+    # dedicated code AFTER the HTTP response; the launcher then reloads the
+    # updated app. Never spawn an orphan Python process from a daemon thread.
+    if os.environ.get('SPMG_SUPERVISOR') != '1':
+        return ('Updatebestanden gecontroleerd en geïnstalleerd. Start het '
+                'Command Center één keer opnieuw met START-SPMG.cmd; de huidige '
+                'chatserver draait nog met de vorige code.')
+    def request_restart():
+        time.sleep(2.5)
+        os._exit(23)
+    threading.Thread(target=request_restart, daemon=True).start()
+    return ('Update gecontroleerd. De Windows-starter herstart de AI-chat automatisch. '
+            'Vernieuw daarna deze pagina met Ctrl+F5 om de nieuwe verbinding te gebruiken.')
 
 
 def diagnose_latest():
@@ -339,7 +339,7 @@ footer{color:#84a9bf;font-size:12px;padding:0 25px 15px;background:#0b1a2d}#deta
 @media(max-width:700px){nav{width:70px;padding:12px}.brand{font-size:12px}.brand small{display:none}nav button{font-size:0}nav button:before{content:'●';font-size:15px}.top{padding:14px}#messages{padding:15px}form{padding:12px}}
 </style></head><body><nav><div class="brand">◆ SPMG AI<br>COMMAND CENTER<small>Lokale Game Maker-agent</small></div>
 <button onclick="ask('status')">◉ Agentstatus</button><button onclick="ask('controleer Game Maker')">▣ Game Maker controleren</button><button onclick="ask('kalibreer het stenen pad')">◈ Padkalibratie</button><button onclick="ask('test eerste steen')">▦ Steenproef</button><button onclick="ask('waarom is bouwen geblokkeerd?')">! Diagnose blokkade</button><button onclick="showStatus()">☷ Logs en resultaten</button><div style="flex:1"></div><small style="color:#7fa0b8">Alleen AI Build Backup. Geen aankopen, wallets of publicatie.</small></nav>
-<main><div class="top"><h1>SPMG AI Developer <span style="font-size:12px;color:#80a0b6">v1.0.3</span></h1><span class="pill" id="state">● Lokaal</span></div>
+<main><div class="top"><h1>SPMG AI Developer <span style="font-size:12px;color:#80a0b6">v1.0.4</span></h1><span class="pill" id="state">● Lokaal</span></div>
 <section id="details"></section><section id="messages"></section><form id="frm"><textarea id="input" placeholder="Bijv. 'Controleer Game Maker', 'Wat is de status?', 'Ontwerp de Welcome Plaza'..."></textarea><button class="submit" type="submit">Verstuur</button></form><footer>Jij geeft de opdracht · de lokale agent voert alleen ondersteunde acties uit · jij publiceert zelf</footer></main>
 <script>
 const KEY = '__TOKEN__';
