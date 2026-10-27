@@ -33,6 +33,27 @@ class CenterTests(unittest.TestCase):
     def test_duplicate_protection(self):
         with patch.object(app,'agent_process_running',return_value=True):
             self.assertIn('al een taak',app.enqueue('stone'))
+    def test_updater_under_supervisor_schedules_restart(self):
+        from subprocess import CompletedProcess
+        with patch.object(app.os, 'name', 'nt'), \
+             patch.dict(app.os.environ, {'SPMG_SUPERVISOR': '1'}), \
+             patch.object(app.subprocess, 'run', return_value=CompletedProcess([], 0, 'SPMG bijgewerkt')), \
+             patch.object(app.threading, 'Thread') as thread:
+            result = app.update_from_chat()
+            self.assertIn('automatisch', result)
+            thread.assert_called_once()
+            self.assertTrue(thread.call_args.kwargs.get('daemon'))
+
+    def test_updater_without_supervisor_requires_manual_restart(self):
+        from subprocess import CompletedProcess
+        with patch.object(app.os, 'name', 'nt'), \
+             patch.dict(app.os.environ, {'SPMG_SUPERVISOR': ''}), \
+             patch.object(app.subprocess, 'run', return_value=CompletedProcess([], 0, 'SPMG bijgewerkt')), \
+             patch.object(app.threading, 'Thread') as thread:
+            result = app.update_from_chat()
+            self.assertIn('START-SPMG.cmd', result)
+            thread.assert_not_called()
+
     def test_tree_not_blind(self):
         with patch.object(app,'agent_process_running',return_value=False),patch.object(app,'bridge_is_running',return_value=False):
             self.assertIn('Actors-telling',app.enqueue('tree'))
