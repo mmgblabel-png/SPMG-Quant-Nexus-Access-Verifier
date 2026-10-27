@@ -1,5 +1,19 @@
 # SPMG AI Command Center v1.0 — geen ZIP-updates
 
+## Snelstart en herstel (27 oktober 2026)
+
+**Gebruik geen losse ZIPs of direct \`& update.ps1\` in een vergrendelde PowerShell.**
+Als het Command Center nog v1.0.6 toont, is dit de kortste ondersteunde herstelroute:
+
+1. Stop het oude Command Center-PowerShell-venster met \`Ctrl+C\` zodat poort 8792 vrij is.
+2. Dubbelklik op het *bestaande* \`START-SPMG.cmd\` in deze map. De CMD-starter gebruikt \`powershell -ExecutionPolicy Bypass\` alleen voor dit proces; er wordt geen permanent Windows-beleid gewijzigd.
+3. De starter laat \`start.ps1\` de manifest-gecontroleerde update ophalen. Als er geen internet is, meldt PowerShell dat en start de bestaande lokale code.
+4. Herlaad \`http://127.0.0.1:8792\` met \`Ctrl+F5\`. Controleer vóór bouwacties het zichtbare versienummer.
+
+De updater controleert SHA-256 voor elk bestand, controleert Python-syntax, staat uitsluitend veilig benoemde bestanden in deze eigen map toe, maakt een backup en rolt gedeeltelijke schrijffouten terug. De agent doet geen update aan Game Maker-projecten of wallets.
+
+**De bouwfunctie is nog een begrensde steenproef, geen voltooid pad.** Gebruik \`bouw toegangspad\` alleen wanneer v1.0.7 of hoger daadwerkelijk zichtbaar is en de juiste **AI Build Backup** op één gemaximaliseerd Game Maker-venster openstaat. Na één poging controleer \`data\path-pilot\result.json\` en beide screenshots; voer geen automatische tweede proef uit. Het Command Center slaat in deze fase niet op en publiceert nooit.
+
 Een privé chatinterface op `http://127.0.0.1:8792` voor de **bestaande** SPMG Desktop Agent in `Documents\SPMG-Sandbox\AI-Agent-Work\SPMG-Desktop-Agent`. Broncode staat bij je bestaande GitHub-repository onder `command-center/`; updates worden bij starten gecontroleerd op SHA-256 en geïnstalleerd met een terugzetkopie.
 
 ## Eenmalig op Windows installeren
