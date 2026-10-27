@@ -1,9 +1,9 @@
 {
-  "version": "1.0.6",
+  "version": "1.0.7",
   "files": [
     {
       "path": "app.py",
-      "sha256": "d27e875ff26fa0b146c1f82e73a7122a6807dd571bebd4bcd36554da361d14b8"
+      "sha256": "d3c5dfb24be36e30771afc9b3ffd22105de073c492c7a592321025a2d2e7e809"
     },
     {
       "path": "start.ps1",
@@ -23,11 +23,15 @@
     },
     {
       "path": "test_app.py",
-      "sha256": "757ecdb3296db635d93432576005b91ccada8ce93186b9958a3a8daefbe90dc5"
+      "sha256": "49ebcf069a43e5cfd14ee6cbaa392221fa9e812a7d463129cb30c0b521a8f77e"
     },
     {
       "path": "update.ps1",
-      "sha256": "51ce03a3005d6ddeae832634ce2f15e195dcec76c495ec6a1ca9b3e09b6b9b83"
+      "sha256": "1fc2eda416a8a9c0986b6c15547aa5e1a90cacf77840f0dd6506996b89db93a5"
+    },
+    {
+      "path": "path_builder.py",
+      "sha256": "ae725b025e873504dcd6a2b64205035a7151efa0615ec06ceafb54b6a1dd78b8"
     }
   ]
 }
