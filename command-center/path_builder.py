@@ -102,9 +102,21 @@ def run_pilot():
         import pygetwindow as gw
     except ImportError as exc:
         raise RuntimeError('Benodigde lokale GUI-module ontbreekt: ' + str(exc))
-    active = gw.getActiveWindow()
-    if not active or 'game maker' not in (active.title or '').lower():
-        raise RuntimeError('Activeer eerst het Game Maker-venster met AI Build Backup.')
+    # Browser requests arrive while Edge is foreground. The controller itself
+    # must activate exactly one Game Maker window; never click another app.
+    games = [win for win in gw.getWindowsWithTitle('Game Maker')
+             if 'game maker' in (win.title or '').lower()
+             and win.width >= 1200 and win.height >= 650]
+    if len(games) != 1:
+        raise RuntimeError('Verwacht precies één zichtbaar Game Maker-venster, gevonden: ' + str(len(games)))
+    active = games[0]
+    if not active.isMaximized:
+        raise RuntimeError('Maximaliseer eerst de AI Build Backup in Game Maker.')
+    active.activate()
+    time.sleep(.8)
+    foreground = gw.getActiveWindow()
+    if not foreground or foreground._hWnd != active._hWnd:
+        raise RuntimeError('Game Maker kon niet betrouwbaar naar voren worden gehaald.')
     if not active.isMaximized:
         raise RuntimeError('Maximaliseer Game Maker voordat de agent gaat bouwen.')
     pg.FAILSAFE = True
