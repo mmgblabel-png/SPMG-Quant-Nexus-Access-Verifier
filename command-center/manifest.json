@@ -1,33 +1,33 @@
 {
-  "version": "1.0.1",
+  "version": "1.0.2",
   "files": [
     {
       "path": "app.py",
-      "sha256": "e993e4afc713a3293ab2d94b00463cabf49ba0deedea620a01ab64df4bcc4618"
+      "sha256": "c6f7bc3668c26767694c5a5ec43710ddabab6b449b036242c53dae0af9cbc911"
     },
     {
       "path": "start.ps1",
-      "sha256": "f2c8e2e8a439427b0b0e8a1aad0a5ab325b012cce41a8a5fecf479355c6feaf7"
+      "sha256": "55734dc95c66762ce5b83b984b8afcac00c0be1e255b15d1d2e726034783adf4"
     },
     {
       "path": "START-SPMG.cmd",
-      "sha256": "0ffcf0ef1b6b04ebe20d65b1994819fb5805569a77bb0dae71a8850b620d5d8a"
+      "sha256": "9ba928b1e989818999fe6ce706db9a2613f8db983b9c902c91aa701275fe5d91"
     },
     {
       "path": "UPDATE-SPMG.cmd",
-      "sha256": "82d6ec68b9da41a827740ed9cf3d91e44d29b8ae7028a54542a162a5e06f83ff"
+      "sha256": "4675e8a39d6dd6f88a8147f4fcfdddd4461b299a604b6e9f4565eb09ee2f969d"
     },
     {
       "path": "README.md",
-      "sha256": "7cd5c31c1abe416edb6321d64585e50cccf592dc65d668fe07aa57a7ad146016"
+      "sha256": "5fcf52d5971ae6e838f13414b0b2bc9b45db0256a332fbaefbb7039c9faa5645"
     },
     {
       "path": "test_app.py",
-      "sha256": "ed5b7a418bce924a527a868c7374e82ef1c5920f6b507e8823ade6d135a8e31f"
+      "sha256": "c4126d36c34b3892a7ef4219511f5ecb010149cf0d2a2be052b92422e4d212a8"
     },
     {
       "path": "update.ps1",
-      "sha256": "e4f97d95b9e7f84389e640eca9766bda6156a872054ea03e20e2017439ef9a12"
+      "sha256": "51ce03a3005d6ddeae832634ce2f15e195dcec76c495ec6a1ca9b3e09b6b9b83"
     }
   ]
 }
