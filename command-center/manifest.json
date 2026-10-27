@@ -1,9 +1,9 @@
 {
-  "version": "1.0.2",
+  "version": "1.0.3",
   "files": [
     {
       "path": "app.py",
-      "sha256": "c6f7bc3668c26767694c5a5ec43710ddabab6b449b036242c53dae0af9cbc911"
+      "sha256": "064dfa2c36e806450a9afbd520c93f3aad45bf58539d4efd8afbef985af0d5af"
     },
     {
       "path": "start.ps1",
