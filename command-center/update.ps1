@@ -8,7 +8,7 @@ try {
     $manifestFile = Join-Path $tempDir 'manifest.json'
     Invoke-WebRequest -Uri "$base/manifest.json" -OutFile $manifestFile -UseBasicParsing -TimeoutSec 25
     $manifest = Get-Content $manifestFile -Raw | ConvertFrom-Json
-    $allowed = @('app.py','start.ps1','START-SPMG.cmd','UPDATE-SPMG.cmd','README.md','test_app.py','update.ps1')
+    $allowed = @('app.py','start.ps1','START-SPMG.cmd','UPDATE-SPMG.cmd','README.md','test_app.py','update.ps1','path_builder.py')
     foreach ($entry in $manifest.files) {
         if ($entry.path -notin $allowed) { throw "Onbekend updatebestand: $($entry.path)" }
         if ($entry.sha256 -notmatch '^[a-fA-F0-9]{64}$') { throw "Ongeldige checksum: $($entry.path)" }
