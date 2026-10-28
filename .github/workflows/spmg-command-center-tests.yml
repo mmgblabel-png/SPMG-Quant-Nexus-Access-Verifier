@@ -1,0 +1,29 @@
+name: SPMG Command Center tests
+
+on:
+  push:
+    paths:
+      - "command-center/**"
+      - ".github/workflows/spmg-command-center-tests.yml"
+  pull_request:
+    paths:
+      - "command-center/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test-command-center:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install test dependencies
+        run: python -m pip install "Pillow>=10,<13"
+      - name: Compile all Command Center Python files
+        run: python -m py_compile command-center/app.py command-center/path_builder.py command-center/test_app.py
+      - name: Run local-only test suite
+        run: python -m unittest discover -s command-center -p test_app.py -v
