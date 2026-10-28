@@ -32,9 +32,13 @@ class CenterTests(unittest.TestCase):
             self.assertEqual(app.respond('verwijder C schijf'),'plan only')
     def test_no_publish(self):
         self.assertIn('uitsluitend jouw',app.respond('publiceer de experience'))
-    def test_duplicate_protection(self):
-        with patch.object(app,'agent_process_running',return_value=True):
-            self.assertIn('al een taak',app.enqueue('stone'))
+    def test_old_stone_probe_is_disabled(self):
+        # The old Alt-based stone action is deliberately unavailable.
+        self.assertIn('oude Alt-steenproef is uitgezet', app.enqueue('stone'))
+
+    def test_parallel_tasks_are_still_blocked(self):
+        with patch.object(app, 'agent_process_running', return_value=True):
+            self.assertIn('al een taak', app.enqueue('calibrate'))
     def test_updater_under_supervisor_schedules_restart(self):
         from subprocess import CompletedProcess
         with patch.object(app.os, 'name', 'nt'), \
